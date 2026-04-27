@@ -1,0 +1,37 @@
+{
+  "name": "booking-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Full-stack booking application monorepo",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "format": "turbo run format",
+    "format:check": "turbo run format:check",
+    "test": "turbo run test",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "type-check": "turbo run type-check"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "eslint": "^8.55.0",
+    "prettier": "^3.1.0",
+    "turbo": "^1.11.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.14.0",
+  "optionalDependencies": {
+    "@nestjs/swagger": "^11.3.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1"
+  },
+  "dependencies": {
+    "@nestjs/config": "^4.0.4",
+    "@nestjs/event-emitter": "^3.0.1"
+  }
+}

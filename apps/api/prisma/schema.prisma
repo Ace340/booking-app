@@ -1,0 +1,230 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Models
+model Company {
+  id        String     @id @default(uuid())
+  name      String
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  // Relations
+   users                  User[]
+   services               Service[]
+   staff                  Staff[]
+   appointments           Appointment[]
+   notifications          Notification[]
+   payments               Payment[]
+   webhookEvents          WebhookEvent[]
+
+   // Stripe Connect fields
+   stripeAccountId        String?            @map("stripe_account_id")
+   stripeOnboardingComplete Boolean          @default(false) @map("stripe_onboarding_complete")
+
+   @@map("companies")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  companyId String   @map("company_id")
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(CLIENT)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+   // Relations
+    company        Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+    appointments   Appointment[]
+    notifications  Notification[]
+    payments       Payment[]
+
+    @@index([companyId])
+    @@map("users")
+}
+
+model Service {
+  id        String   @id @default(uuid())
+  companyId String   @map("company_id")
+  name      String
+  duration  Int      // Duration in minutes
+  price     Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([companyId])
+  @@map("services")
+}
+
+model Staff {
+  id        String   @id @default(uuid())
+  companyId String   @map("company_id")
+  name      String
+  email     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([companyId])
+  @@map("staff")
+}
+
+model Appointment {
+  id        String          @id @default(uuid())
+  companyId String          @map("company_id")
+  userId    String          @map("user_id")
+  staffId   String          @map("staff_id")
+  serviceId String          @map("service_id")
+  startTime DateTime        @map("start_time")
+  endTime   DateTime        @map("end_time")
+  status    AppointmentStatus @default(SCHEDULED)
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  company Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  staff   Staff    @relation(fields: [staffId], references: [id], onDelete: Restrict)
+  service Service  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  payment Payment?
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([staffId])
+  @@index([serviceId])
+  @@index([startTime])
+  @@map("appointments")
+}
+
+// Enums
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum WebhookEventStatus {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+  CLIENT
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMATION
+  BOOKING_REMINDER
+  BOOKING_CANCELLATION
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  READ
+}
+
+model Notification {
+  id         String             @id @default(uuid())
+  companyId  String             @map("company_id")
+  userId     String             @map("user_id")
+  type       NotificationType
+  title      String
+  message    String
+  status     NotificationStatus @default(PENDING)
+  metadata   Json?
+  readAt     DateTime?          @map("read_at")
+  createdAt  DateTime           @default(now()) @map("created_at")
+  updatedAt  DateTime           @updatedAt @map("updated_at")
+
+  // Relations
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+   @@index([companyId])
+   @@index([userId])
+   @@index([status])
+   @@index([createdAt])
+   @@map("notifications")
+}
+
+// Payment — links Stripe payments to appointments
+model Payment {
+   id                 String        @id @default(uuid())
+   companyId          String        @map("company_id")
+   appointmentId      String        @unique @map("appointment_id")
+   userId             String        @map("user_id")
+   stripePaymentIntentId String    @unique @map("stripe_payment_intent_id")
+   amount             Int                                // Amount in cents (smallest currency unit)
+   currency           String        @default("usd")
+   platformFee        Int?          @map("platform_fee")  // Platform fee in cents
+   status             PaymentStatus @default(PENDING)
+   stripeReceiptUrl   String?       @map("stripe_receipt_url")
+   metadata           Json?
+   createdAt          DateTime      @default(now()) @map("created_at")
+   updatedAt          DateTime      @updatedAt @map("updated_at")
+
+   // Relations
+   company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+   user        User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+   @@index([companyId])
+   @@index([userId])
+   @@index([status])
+   @@index([stripePaymentIntentId])
+   @@map("payments")
+}
+
+// WebhookEvent — idempotent Stripe webhook processing
+model WebhookEvent {
+   id              String             @id @default(uuid())
+   companyId       String?            @map("company_id")
+   stripeEventId   String             @unique @map("stripe_event_id")
+   type            String
+   status          WebhookEventStatus @default(PENDING)
+   payload         Json
+   error           String?
+   processedAt     DateTime?          @map("processed_at")
+   createdAt       DateTime           @default(now()) @map("created_at")
+   updatedAt       DateTime           @updatedAt @map("updated_at")
+
+   // Relations
+   company         Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+   @@index([stripeEventId])
+   @@index([status])
+   @@index([type])
+   @@map("webhook_events")
+}
