@@ -1,7 +1,8 @@
 /**
  * Users Module
  *
- * Export users module.
+ * Export all user-related exports.
  */
 
 export * from './users.module';
+export * from './types/user.types';

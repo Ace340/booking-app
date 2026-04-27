@@ -83,6 +83,22 @@ export interface Service {
   updatedAt: string
 }
 
+export interface CreateServiceDto {
+  name: string
+  duration: number
+  price: number
+}
+
+export interface UpdateServiceDto {
+  name?: string
+  duration?: number
+  price?: number
+}
+
+export interface ServiceFilters {
+  name?: string
+}
+
 // ─── Staff Types ─────────────────────────────────────────
 
 export interface Staff {
@@ -92,6 +108,20 @@ export interface Staff {
   email: string
   createdAt: string
   updatedAt: string
+}
+
+export interface CreateStaffDto {
+  name: string
+  email: string
+}
+
+export interface UpdateStaffDto {
+  name?: string
+  email?: string
+}
+
+export interface StaffFilters {
+  name?: string
 }
 
 // ─── Appointment Types ───────────────────────────────────
@@ -120,6 +150,10 @@ export interface AppointmentFilters {
   status?: AppointmentStatus
   dateFrom?: string
   dateTo?: string
+}
+
+export interface CustomerFilters {
+  search?: string
 }
 
 // ─── API Response Types ──────────────────────────────────

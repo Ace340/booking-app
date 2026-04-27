@@ -1,21 +1,18 @@
-/**
- * Users Module
- *
- * Example module demonstrating auth integration.
- */
-
 import { Module } from '@nestjs/common';
 import { UsersController } from './controllers/users.controller';
+import { UserService } from './services/user.service';
+import { UserRepository } from './repositories/user.repository';
+import { PrismaService } from '../../common/prisma/prisma.service';
 
 /**
  * Users Module
  *
  * Provides user-related endpoints.
- * Demonstrates authentication and authorization patterns.
+ * Exports service for use in other modules if needed.
  */
 @Module({
   controllers: [UsersController],
-  providers: [],
-  exports: [],
+  providers: [PrismaService, UserRepository, UserService],
+  exports: [UserService],
 })
 export class UsersModule {}

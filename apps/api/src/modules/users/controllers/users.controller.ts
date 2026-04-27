@@ -1,24 +1,27 @@
 /**
  * Users Controller
  *
- * Example controller demonstrating authentication and authorization usage.
- * Shows how to protect routes and use role-based access control.
+ * Handles HTTP requests for user operations.
+ * Follows clean architecture: only HTTP logic, no business logic.
  */
 
 import {
   Controller,
   Get,
-  Post,
+  Patch,
   Body,
+  Param,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { UserService } from '../services/user.service';
+import { UpdateProfileDto } from '../dto';
 import {
   JwtAuthGuard,
   RolesGuard,
   CurrentUser,
-  Public,
   Roles,
   AuthUser as AuthUserType,
 } from '../../auth';
@@ -27,126 +30,81 @@ import { UserRole } from '@prisma/client';
 /**
  * Users Controller
  *
- * Demonstrates various authentication patterns:
- * - Public routes (no authentication)
- * - Protected routes (authentication required)
- * - Role-protected routes (specific roles required)
+ * Provides endpoints for user profile and customer management.
+ * All routes require JWT authentication.
  */
 @Controller('users')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
-  /**
-   * Public endpoint - no authentication required
-   */
-  @Get('public')
-  @Public()
-  getPublicInfo() {
-    return {
-      message: 'This is a public endpoint',
-      timestamp: new Date().toISOString(),
-    };
-  }
+  constructor(private readonly userService: UserService) {}
 
   /**
-   * Protected endpoint - authentication required
-   * Returns current user profile
+   * Get current user's profile
+   * @param user - Authenticated user
+   * @returns User profile (id, email, name, role, companyId)
    */
   @Get('profile')
-  @UseGuards(JwtAuthGuard)
-  getProfile(@CurrentUser() user: AuthUserType) {
-    return {
-      message: 'This is a protected endpoint',
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
-      timestamp: new Date().toISOString(),
-    };
+  @HttpCode(HttpStatus.OK)
+  async getProfile(@CurrentUser() user: AuthUserType) {
+    return this.userService.getProfile(user.id);
   }
 
   /**
-   * Admin-only endpoint - admin role required
+   * List customers (CLIENT role) in the same company
+   * @param user - Authenticated user
+   * @param search - Optional search term for name/email
+   * @returns Array of customer users
    */
-  @Get('admin/dashboard')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get('customers')
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @HttpCode(HttpStatus.OK)
+  async listCustomers(
+    @CurrentUser() user: AuthUserType,
+    @Query('search') search?: string,
+  ) {
+    return this.userService.listCustomers(user.companyId, search);
+  }
+
+  /**
+   * Get a single customer by ID, scoped to company
+   * @param id - Customer user ID
+   * @param user - Authenticated user
+   * @returns Customer user profile
+   */
+  @Get('customers/:id')
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @HttpCode(HttpStatus.OK)
+  async getCustomer(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUserType,
+  ) {
+    return this.userService.getCustomer(id, user.companyId);
+  }
+
+  /**
+   * Update current user's profile (name and/or email)
+   * @param dto - Update data
+   * @param user - Authenticated user
+   * @returns Updated user profile
+   */
+  @Patch('profile')
+  @HttpCode(HttpStatus.OK)
+  async updateProfile(
+    @Body() dto: UpdateProfileDto,
+    @CurrentUser() user: AuthUserType,
+  ) {
+    return this.userService.updateProfile(user.id, dto);
+  }
+
+  /**
+   * List all users in the company (admin only)
+   * @param user - Authenticated admin user
+   * @returns Array of all users in company
+   */
+  @Get()
   @Roles(UserRole.ADMIN)
-  getAdminDashboard(@CurrentUser() user: AuthUserType) {
-    return {
-      message: 'This is an admin-only endpoint',
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
-      dashboardData: {
-        totalUsers: 0,
-        activeUsers: 0,
-        revenue: 0,
-      },
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  /**
-   * Staff or admin endpoint - staff or admin role required
-   */
-  @Get('staff/schedule')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.STAFF, UserRole.ADMIN)
-  getStaffSchedule(@CurrentUser() user: AuthUserType) {
-    return {
-      message: 'This is a staff/admin endpoint',
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
-      schedule: [
-        { time: '09:00', appointment: 'Client A' },
-        { time: '10:00', appointment: 'Client B' },
-        { time: '11:00', appointment: 'Client C' },
-      ],
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  /**
-   * Client endpoint - client role required
-   */
-  @Get('client/appointments')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.CLIENT)
-  getClientAppointments(@CurrentUser() user: AuthUserType) {
-    return {
-      message: 'This is a client-only endpoint',
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
-      appointments: [
-        { id: '1', date: '2024-01-15', time: '10:00', service: 'Haircut' },
-        { id: '2', date: '2024-01-20', time: '14:00', service: 'Massage' },
-      ],
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  /**
-   * Endpoint accessible by authenticated users (any role)
-   * Demonstrates accessing specific user properties
-   */
-  @Get('email')
-  @UseGuards(JwtAuthGuard)
-  getUserEmail(@CurrentUser('email') email: string) {
-    return {
-      message: 'Your email is',
-      email,
-      timestamp: new Date().toISOString(),
-    };
+  @HttpCode(HttpStatus.OK)
+  async findAll(@CurrentUser() user: AuthUserType) {
+    return this.userService.findAll(user.companyId);
   }
 }

@@ -13,6 +13,8 @@ import { UsersModule } from './modules/users';
 import { BookingModule } from './modules/booking';
 import { NotificationModule } from './modules/notification';
 import { PaymentModule } from './modules/payment';
+import { ServicesModule } from './modules/services';
+import { StaffModule } from './modules/staff';
 import { PrismaService } from './common/prisma/prisma.service';
 
 @Module({
@@ -24,6 +26,8 @@ import { PrismaService } from './common/prisma/prisma.service';
     BookingModule,
     NotificationModule,
     PaymentModule,
+    ServicesModule,
+    StaffModule,
   ],
   controllers: [],
   providers: [PrismaService],

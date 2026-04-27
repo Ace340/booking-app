@@ -7,6 +7,7 @@
       "dom.iterable",
       "esnext"
     ],
+    "rootDir": ".",
     "jsx": "preserve",
     "module": "esnext",
     "moduleResolution": "bundler",
