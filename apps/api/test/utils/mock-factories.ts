@@ -19,6 +19,7 @@ import { CreateBookingData } from '../../src/modules/booking/types/booking.types
  */
 export const createMockAuthUser = (overrides: Partial<AuthUser> = {}): AuthUser => ({
   id: 'user-1',
+  clerkId: 'user_clerk_1',
   email: 'client@example.com',
   name: 'Test Client',
   role: UserRole.CLIENT,

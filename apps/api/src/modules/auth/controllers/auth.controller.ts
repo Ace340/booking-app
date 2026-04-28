@@ -1,44 +1,31 @@
 /**
  * Auth Controller
  *
- * Handles HTTP requests for authentication.
- * Follows clean architecture: only HTTP logic, no business logic.
- */
-
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { AuthService } from '../services/auth.service';
-import { RegisterDto, LoginDto } from '../dto';
-import { AuthResponse } from '../types/auth.types';
-
-/**
- * Auth Controller
+ * Provides endpoints related to the current authenticated user.
+ * Registration and login are handled by Clerk — this controller
+ * focuses on reading the current user's profile from our DB.
  *
- * Provides endpoints for user authentication.
- * All routes are public by default (marked with @Public()).
+ * All routes require Clerk authentication.
  */
+
+import { Controller, Get, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { ClerkAuthGuard } from '../guards/clerk-auth.guard';
+import { CurrentUser } from '../decorators/auth-user.decorator';
+import { AuthService } from '../services/auth.service';
+import { AuthUser } from '../types/auth.types';
+
 @Controller('auth')
+@UseGuards(ClerkAuthGuard)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   /**
-   * Register a new user
-   * @param registerDto - Registration data
-   * @returns Auth response with access token and user data
+   * Get current authenticated user's profile (from local DB).
+   * If user doesn't exist in DB yet, auto-creates from Clerk data.
    */
-  @Post('register')
-  @HttpCode(HttpStatus.CREATED)
-  async register(@Body() registerDto: RegisterDto): Promise<AuthResponse> {
-    return this.authService.register(registerDto);
-  }
-
-  /**
-   * Login user
-   * @param loginDto - Login data
-   * @returns Auth response with access token and user data
-   */
-  @Post('login')
+  @Get('me')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto): Promise<AuthResponse> {
-    return this.authService.login(loginDto);
+  async getMe(@CurrentUser() user: AuthUser): Promise<AuthUser> {
+    return user;
   }
 }

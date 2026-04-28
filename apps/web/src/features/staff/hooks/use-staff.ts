@@ -2,10 +2,11 @@
  * useStaff Hook
  *
  * Fetches the list of staff members with optional filters.
- * Wraps React Query's `useQuery` — components only consume this hook.
+ * Obtains a Clerk session token internally via `useAuth()`.
  */
 
 import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '@clerk/nextjs'
 import { staffService } from '@/services'
 import type { StaffFilters } from '@booking-app/types'
 
@@ -14,15 +15,16 @@ export const STAFF_KEY = 'staff'
 
 /**
  * @param filters - Optional query filters (name)
- * @param token   - JWT access token
  */
-export function useStaff(
-  filters: StaffFilters,
-  token: string | null,
-) {
+export function useStaff(filters: StaffFilters) {
+  const { getToken, isSignedIn } = useAuth()
+
   return useQuery({
     queryKey: [STAFF_KEY, filters],
-    queryFn: () => staffService.getStaff(filters, token!),
-    enabled: Boolean(token),
+    queryFn: async () => {
+      const token = await getToken()
+      return staffService.getStaff(filters, token!)
+    },
+    enabled: !!isSignedIn,
   })
 }

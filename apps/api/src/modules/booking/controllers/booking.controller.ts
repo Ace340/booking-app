@@ -20,7 +20,7 @@ import {
 import { BookingService } from '../services/booking.service';
 import { CreateBookingDto } from '../dto';
 import {
-  JwtAuthGuard,
+  ClerkAuthGuard,
   RolesGuard,
   CurrentUser,
   AuthUser as AuthUserType,
@@ -34,7 +34,7 @@ import { Appointment, AppointmentStatus } from '@prisma/client';
  * All routes require JWT authentication.
  */
 @Controller('bookings')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(ClerkAuthGuard, RolesGuard)
 export class BookingController {
   constructor(private readonly bookingService: BookingService) {}
 

@@ -6,17 +6,19 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '@clerk/nextjs'
 import { staffService } from '@/services'
 import { STAFF_KEY } from './use-staff'
 
-/**
- * @param token - JWT access token
- */
-export function useDeleteStaff(token: string | null) {
+export function useDeleteStaff() {
   const queryClient = useQueryClient()
+  const { getToken } = useAuth()
 
   return useMutation<void, Error, string>({
-    mutationFn: (id) => staffService.deleteStaff(id, token!),
+    mutationFn: async (id) => {
+      const token = await getToken()
+      return staffService.deleteStaff(id, token!)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [STAFF_KEY] })
     },

@@ -2,10 +2,12 @@
  * useAppointments Hook
  *
  * Fetches the list of appointments with optional filters.
- * Wraps React Query's `useQuery` — components only consume this hook.
+ * Obtains a Clerk session token internally via `useAuth()`.
+ * Components consume only this hook — never the service directly.
  */
 
 import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '@clerk/nextjs'
 import { bookingService } from '@/services'
 import type { AppointmentFilters } from '@booking-app/types'
 
@@ -14,20 +16,21 @@ export const APPOINTMENTS_KEY = 'appointments'
 
 /**
  * @param filters - Optional query filters (staffId, status, dateFrom, dateTo)
- * @param token   - JWT access token
  *
  * @example
  * ```tsx
- * const { data: appointments, isLoading, error } = useAppointments({}, token)
+ * const { data: appointments, isLoading, error } = useAppointments({})
  * ```
  */
-export function useAppointments(
-  filters: AppointmentFilters,
-  token: string | null,
-) {
+export function useAppointments(filters: AppointmentFilters) {
+  const { getToken, isSignedIn } = useAuth()
+
   return useQuery({
     queryKey: [APPOINTMENTS_KEY, filters],
-    queryFn: () => bookingService.getAppointments(filters, token!),
-    enabled: Boolean(token),
+    queryFn: async () => {
+      const token = await getToken()
+      return bookingService.getAppointments(filters, token!)
+    },
+    enabled: !!isSignedIn,
   })
 }

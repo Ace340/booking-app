@@ -1,140 +1,110 @@
 /**
  * Auth Service
  *
- * Contains business logic for authentication and authorization.
- * Follows clean architecture: pure functions, no side effects.
+ * Handles user synchronization between Clerk and the local database.
+ * Authentication (login/register/password) is managed by Clerk —
+ * this service focuses on user sync and lookup.
  */
 
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
-import { AuthRepository } from '../repositories/auth.repository';
-import { RegisterDto, LoginDto } from '../dto';
-import { AuthUser, JwtPayload, RegisterUserData, AuthResponse } from '../types/auth.types';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { createClerkClient } from '@clerk/backend';
 import { ConfigService } from '@nestjs/config';
+import { AuthRepository } from '../repositories/auth.repository';
+import { AuthUser, UserSyncData } from '../types/auth.types';
+import { UserRole } from '@prisma/client';
 
-/**
- * Auth Service
- *
- * Handles authentication business logic.
- * All methods are pure functions with explicit dependencies.
- */
 @Injectable()
 export class AuthService {
-  private readonly saltRounds: number = 10;
+  private readonly logger = new Logger(AuthService.name);
 
   constructor(
     private readonly authRepository: AuthRepository,
-    private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
 
   /**
-   * Register a new user
-   * @param registerDto - Registration data
-   * @returns Auth response with access token and user data
-   * @throws ConflictException if email already exists
+   * Find or create a local user from a Clerk user ID.
+   * Useful when a verified Clerk user doesn't have a local record yet.
+   *
+   * @param clerkUserId - The Clerk user ID (user_...)
+   * @returns AuthUser or null if Clerk user not found
    */
-  async register(registerDto: RegisterDto): Promise<AuthResponse> {
-    // Check if email already exists
-    const emailExists = await this.authRepository.emailExists(registerDto.email);
-    if (emailExists) {
-      throw new ConflictException('Email already registered');
+  async findOrCreateFromClerk(clerkUserId: string): Promise<AuthUser | null> {
+    // Check local DB first
+    const existing = await this.authRepository.findByClerkId(clerkUserId);
+    if (existing) {
+      return {
+        id: existing.id,
+        clerkId: existing.clerkId ?? clerkUserId,
+        email: existing.email,
+        name: existing.name,
+        role: existing.role,
+        companyId: existing.companyId,
+      };
     }
 
-    // Hash password
-    const hashedPassword = await this.hashPassword(registerDto.password);
+    // Fetch from Clerk and create local record
+    try {
+      const secretKey = this.configService.get<string>('CLERK_SECRET_KEY');
+      const clerkClient = createClerkClient({ secretKey });
+      const clerkUser = await clerkClient.users.getUser(clerkUserId);
 
-    // Create user data
-    const userData: RegisterUserData = {
-      email: registerDto.email,
-      password: hashedPassword,
-      name: registerDto.name,
-      companyId: registerDto.companyId,
-      role: registerDto.role,
-    };
+      const syncData: UserSyncData = {
+        clerkId: clerkUser.id,
+        email: clerkUser.emailAddresses?.[0]?.emailAddress ?? '',
+        name: [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') || 'User',
+        role: (clerkUser.publicMetadata?.role as UserRole) || UserRole.CLIENT,
+      };
 
-    // Create user
-    const user = await this.authRepository.create(userData);
+      const user = await this.authRepository.createFromClerk(syncData);
 
-    // Generate token
-    const accessToken = await this.generateToken(this.buildJwtPayload(user));
+      this.logger.log(`Auto-created local user for clerkId=${clerkUserId}`);
 
-    // Build response (exclude password)
-    const authUser: AuthUser = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      companyId: user.companyId,
-    };
-
-    return {
-      accessToken,
-      user: {
-        id: authUser.id,
-        email: authUser.email,
-        name: authUser.name,
-        role: authUser.role,
-      },
-    };
+      return {
+        id: user.id,
+        clerkId: user.clerkId ?? clerkUserId,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        companyId: user.companyId,
+      };
+    } catch (error) {
+      this.logger.warn(`Failed to fetch/create user from Clerk: ${error instanceof Error ? error.message : 'Unknown'}`);
+      return null;
+    }
   }
 
   /**
-   * Login user
-   * @param loginDto - Login data
-   * @returns Auth response with access token and user data
-   * @throws UnauthorizedException if credentials are invalid
+   * Get a local user by their internal ID.
    */
-  async login(loginDto: LoginDto): Promise<AuthResponse> {
-    // Find user by email
-    const user = await this.authRepository.findByEmail(loginDto.email);
+  async findById(id: string): Promise<AuthUser> {
+    const user = await this.authRepository.findById(id);
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new NotFoundException(`User not found: ${id}`);
     }
 
-    // Verify password
-    const isPasswordValid = await this.verifyPassword(loginDto.password, user.password);
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    // Generate token
-    const accessToken = await this.generateToken(this.buildJwtPayload(user));
-
-    // Build response (exclude password)
-    const authUser: AuthUser = {
+    return {
       id: user.id,
+      clerkId: user.clerkId ?? '',
       email: user.email,
       name: user.name,
       role: user.role,
       companyId: user.companyId,
     };
-
-    return {
-      accessToken,
-      user: {
-        id: authUser.id,
-        email: authUser.email,
-        name: authUser.name,
-        role: authUser.role,
-      },
-    };
   }
 
   /**
-   * Validate JWT token
-   * @param payload - JWT payload
-   * @returns User data if valid, null otherwise
+   * Get a local user by their Clerk ID.
    */
-  async validateToken(payload: JwtPayload): Promise<AuthUser | null> {
-    const user = await this.authRepository.findById(payload.sub);
+  async findByClerkId(clerkId: string): Promise<AuthUser | null> {
+    const user = await this.authRepository.findByClerkId(clerkId);
     if (!user) {
       return null;
     }
 
     return {
       id: user.id,
+      clerkId: user.clerkId ?? clerkId,
       email: user.email,
       name: user.name,
       role: user.role,
@@ -143,44 +113,13 @@ export class AuthService {
   }
 
   /**
-   * Hash password using bcrypt
-   * @param password - Plain text password
-   * @returns Hashed password
+   * Get the current authenticated user's profile.
    */
-  private async hashPassword(password: string): Promise<string> {
-    return bcrypt.hash(password, this.saltRounds);
-  }
-
-  /**
-   * Verify password against hash
-   * @param password - Plain text password
-   * @param hash - Hashed password
-   * @returns True if password matches, false otherwise
-   */
-  private async verifyPassword(password: string, hash: string): Promise<boolean> {
-    return bcrypt.compare(password, hash);
-  }
-
-  /**
-   * Build JWT payload from user
-   * @param user - User entity
-   * @returns JWT payload
-   */
-  private buildJwtPayload(user: any): JwtPayload {
-    return {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-      companyId: user.companyId,
-    };
-  }
-
-  /**
-   * Generate JWT token
-   * @param payload - JWT payload
-   * @returns JWT token string
-   */
-  private async generateToken(payload: JwtPayload): Promise<string> {
-    return this.jwtService.signAsync(payload);
+  async getProfile(clerkUserId: string): Promise<AuthUser> {
+    const user = await this.findOrCreateFromClerk(clerkUserId);
+    if (!user) {
+      throw new NotFoundException('User profile not found');
+    }
+    return user;
   }
 }

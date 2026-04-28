@@ -24,7 +24,7 @@ import {
 import { PaymentService } from '../services/payment.service';
 import { CreatePaymentIntentDto } from '../dto';
 import {
-  JwtAuthGuard,
+  ClerkAuthGuard,
   RolesGuard,
   CurrentUser,
   AuthUser as AuthUserType,
@@ -32,7 +32,7 @@ import {
 import { Payment, PaymentStatus } from '@prisma/client';
 
 @Controller('payments')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(ClerkAuthGuard, RolesGuard)
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 

@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+
+# Testing
+coverage/
+
+# Production builds
+dist/
+build/
+.expo/
+.expo-shared/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+
+# Cache
+.cache/
+.expo-shared/
+
+# Temporary files
+tmp/
+temp/
+
+# Documentation
+*.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+
+# Mobile-specific
+*.ipa
+*.apk
+*.aab
+
+# Keep these files for Docker build
+!package.json
+!pnpm-lock.yaml
+!tsconfig.json
+!app.json
+!app.config.js
+!eas.json
+!src/
+!assets/

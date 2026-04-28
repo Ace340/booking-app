@@ -2,10 +2,11 @@
  * useServices Hook
  *
  * Fetches the list of services with optional filters.
- * Wraps React Query's `useQuery` — components only consume this hook.
+ * Obtains a Clerk session token internally via `useAuth()`.
  */
 
 import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '@clerk/nextjs'
 import { serviceService } from '@/services'
 import type { ServiceFilters } from '@booking-app/types'
 
@@ -14,15 +15,16 @@ export const SERVICES_KEY = 'services'
 
 /**
  * @param filters - Optional query filters (name)
- * @param token   - JWT access token
  */
-export function useServices(
-  filters: ServiceFilters,
-  token: string | null,
-) {
+export function useServices(filters: ServiceFilters) {
+  const { getToken, isSignedIn } = useAuth()
+
   return useQuery({
     queryKey: [SERVICES_KEY, filters],
-    queryFn: () => serviceService.getServices(filters, token!),
-    enabled: Boolean(token),
+    queryFn: async () => {
+      const token = await getToken()
+      return serviceService.getServices(filters, token!)
+    },
+    enabled: !!isSignedIn,
   })
 }

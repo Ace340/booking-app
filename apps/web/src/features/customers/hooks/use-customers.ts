@@ -2,10 +2,11 @@
  * useCustomers Hook
  *
  * Fetches the list of customers with optional search filters.
- * Wraps React Query's `useQuery` — components only consume this hook.
+ * Obtains a Clerk session token internally via `useAuth()`.
  */
 
 import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '@clerk/nextjs'
 import { customerService } from '@/services'
 import type { CustomerFilters } from '@booking-app/types'
 
@@ -14,15 +15,16 @@ export const CUSTOMERS_KEY = 'customers'
 
 /**
  * @param filters - Optional query filters (search)
- * @param token   - JWT access token
  */
-export function useCustomers(
-  filters: CustomerFilters,
-  token: string | null,
-) {
+export function useCustomers(filters: CustomerFilters) {
+  const { getToken, isSignedIn } = useAuth()
+
   return useQuery({
     queryKey: [CUSTOMERS_KEY, filters],
-    queryFn: () => customerService.getCustomers(filters, token!),
-    enabled: Boolean(token),
+    queryFn: async () => {
+      const token = await getToken()
+      return customerService.getCustomers(filters, token!)
+    },
+    enabled: !!isSignedIn,
   })
 }

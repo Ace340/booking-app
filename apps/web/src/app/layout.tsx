@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { ClerkProvider } from '@clerk/nextjs'
 import { QueryProvider } from '@/providers/query-provider'
 import './globals.css'
 
@@ -19,10 +20,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} antialiased`}>
-        <QueryProvider>{children}</QueryProvider>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <body className={`${inter.className} antialiased`}>
+          <QueryProvider>{children}</QueryProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   )
 }

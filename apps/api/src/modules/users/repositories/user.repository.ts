@@ -14,6 +14,7 @@ import { User, UserRole } from '@prisma/client';
  */
 const SAFE_USER_SELECT = {
   id: true,
+  clerkId: true,
   companyId: true,
   email: true,
   name: true,

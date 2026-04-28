@@ -19,7 +19,7 @@ import {
 import { NotificationService } from '../services/notification.service';
 import { NotificationFiltersDto } from '../dto';
 import {
-  JwtAuthGuard,
+  ClerkAuthGuard,
   RolesGuard,
   CurrentUser,
   AuthUser as AuthUserType,
@@ -33,7 +33,7 @@ import { Notification } from '@prisma/client';
  * All routes require JWT authentication.
  */
 @Controller('notifications')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(ClerkAuthGuard, RolesGuard)
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 

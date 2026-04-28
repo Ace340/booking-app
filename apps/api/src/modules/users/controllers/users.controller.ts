@@ -19,7 +19,7 @@ import {
 import { UserService } from '../services/user.service';
 import { UpdateProfileDto } from '../dto';
 import {
-  JwtAuthGuard,
+  ClerkAuthGuard,
   RolesGuard,
   CurrentUser,
   Roles,
@@ -34,7 +34,7 @@ import { UserRole } from '@prisma/client';
  * All routes require JWT authentication.
  */
 @Controller('users')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(ClerkAuthGuard, RolesGuard)
 export class UsersController {
   constructor(private readonly userService: UserService) {}
 

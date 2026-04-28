@@ -1,7 +1,7 @@
 /**
  * Auth Configuration Factory
  *
- * Provides typed config for JWT and bcrypt settings.
+ * Provides typed config for Clerk settings.
  */
 
 import { registerAs } from '@nestjs/config';
@@ -9,13 +9,20 @@ import { registerAs } from '@nestjs/config';
 export const AUTH_CONFIG = 'auth';
 
 export interface AuthConfig {
-  jwtSecret: string;
-  jwtExpiresIn: string;
-  bcryptSaltRounds: number;
+  clerkSecretKey: string;
+  clerkPublishableKey: string;
+  clerkJwtKey?: string;
+  clerkAuthorizedParties: string[];
+  clerkWebhookSecret: string;
 }
 
 export const authConfig = registerAs<AuthConfig>(AUTH_CONFIG, () => ({
-  jwtSecret: process.env.JWT_SECRET!,
-  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  bcryptSaltRounds: parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10),
+  clerkSecretKey: process.env.CLERK_SECRET_KEY!,
+  clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY || '',
+  clerkJwtKey: process.env.CLERK_JWT_KEY,
+  clerkAuthorizedParties: (
+    process.env.CLERK_AUTHORIZED_PARTIES ||
+    'http://localhost:3000,exp://192.168.*.*:19000'
+  ).split(','),
+  clerkWebhookSecret: process.env.CLERK_WEBHOOK_SECRET || '',
 }));

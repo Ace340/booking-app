@@ -10,8 +10,8 @@ export default function AuthLayout() {
         contentStyle: styles.container,
       }}
     >
-      <Stack.Screen name="login" />
-      <Stack.Screen name="register" />
+      <Stack.Screen name="sign-in" />
+      <Stack.Screen name="sign-up" />
     </Stack>
   );
 }

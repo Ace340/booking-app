@@ -5,11 +5,6 @@ import { useAppointments } from '@/features/bookings/hooks'
 import { AppointmentStatus } from '@booking-app/types'
 import type { AppointmentFilters } from '@booking-app/types'
 
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem('auth_token')
-}
-
 type FilterOption = 'All' | AppointmentStatus
 
 const FILTER_OPTIONS: FilterOption[] = ['All', AppointmentStatus.SCHEDULED, AppointmentStatus.COMPLETED, AppointmentStatus.CANCELLED]
@@ -28,14 +23,13 @@ function getStatusBadgeClasses(status: AppointmentStatus): string {
 }
 
 export default function AppointmentsPage() {
-  const token = getToken()
   const [activeFilter, setActiveFilter] = useState<FilterOption>('All')
 
   const filters: AppointmentFilters = activeFilter === 'All'
     ? {}
     : { status: activeFilter as AppointmentStatus }
 
-  const { data: appointments, isLoading, error } = useAppointments(filters, token)
+  const { data: appointments, isLoading, error } = useAppointments(filters)
 
   return (
     <div>

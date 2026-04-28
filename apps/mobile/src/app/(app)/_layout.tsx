@@ -1,6 +1,6 @@
 import { Redirect, Tabs } from 'expo-router';
 import { Text, StyleSheet } from 'react-native';
-import { useAuthStore } from '@/store';
+import { useAuth } from '@clerk/expo';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/theme';
 
 function TabIcon({ title, focused }: { title: string; focused: boolean }) {
@@ -12,10 +12,10 @@ function TabIcon({ title, focused }: { title: string; focused: boolean }) {
 }
 
 export default function AppLayout() {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const { isSignedIn } = useAuth();
 
-  if (!isAuthenticated) {
-    return <Redirect href="/(auth)/login" />;
+  if (!isSignedIn) {
+    return <Redirect href="/(auth)/sign-in" />;
   }
 
   return (

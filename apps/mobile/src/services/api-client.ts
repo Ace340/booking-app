@@ -1,3 +1,4 @@
+import { getClerkInstance } from '@clerk/expo';
 import type { ApiResponse } from '@booking-app/types';
 
 const API_BASE_URL = __DEV__ ? 'http://localhost:3001' : 'https://api.bookingapp.com';
@@ -7,17 +8,32 @@ type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 interface RequestOptions {
   method?: HttpMethod;
   body?: unknown;
-  token?: string | null;
+}
+
+/**
+ * Get the current Clerk session token.
+ * Returns null if not signed in.
+ */
+async function getClerkToken(): Promise<string | null> {
+  try {
+    const clerk = getClerkInstance();
+    const token = await clerk.session?.getToken();
+    return token ?? null;
+  } catch {
+    return null;
+  }
 }
 
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
-  const { method = 'GET', body, token } = options;
+  const { method = 'GET', body } = options;
 
   try {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
+    // Auto-attach Clerk token
+    const token = await getClerkToken();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -44,18 +60,18 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 }
 
 export const apiService = {
-  get: <T>(endpoint: string, token?: string | null) =>
-    request<T>(endpoint, { method: 'GET', token }),
+  get: <T>(endpoint: string) =>
+    request<T>(endpoint, { method: 'GET' }),
 
-  post: <T>(endpoint: string, body: unknown, token?: string | null) =>
-    request<T>(endpoint, { method: 'POST', body, token }),
+  post: <T>(endpoint: string, body: unknown) =>
+    request<T>(endpoint, { method: 'POST', body }),
 
-  put: <T>(endpoint: string, body: unknown, token?: string | null) =>
-    request<T>(endpoint, { method: 'PUT', body, token }),
+  put: <T>(endpoint: string, body: unknown) =>
+    request<T>(endpoint, { method: 'PUT', body }),
 
-  patch: <T>(endpoint: string, body: unknown, token?: string | null) =>
-    request<T>(endpoint, { method: 'PATCH', body, token }),
+  patch: <T>(endpoint: string, body?: unknown) =>
+    request<T>(endpoint, { method: 'PATCH', body }),
 
-  delete: <T>(endpoint: string, token?: string | null) =>
-    request<T>(endpoint, { method: 'DELETE', token }),
+  delete: <T>(endpoint: string) =>
+    request<T>(endpoint, { method: 'DELETE' }),
 };

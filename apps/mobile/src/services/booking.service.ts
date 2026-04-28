@@ -2,7 +2,7 @@
  * Booking Service (Mobile)
  *
  * API calls for appointment bookings using the shared api-client.
- * Unwraps ApiResponse envelope so hooks receive clean data.
+ * The api-client auto-attaches Clerk tokens — no manual token passing needed.
  * Consumed by hooks — never by components directly.
  */
 
@@ -34,12 +34,10 @@ function buildQueryString(filters: AppointmentFilters): string {
 export const bookingService = {
   getAppointments: async (
     filters: AppointmentFilters,
-    token: string,
   ): Promise<Appointment[]> => {
     const qs = buildQueryString(filters)
     const response = await apiService.get<Appointment[]>(
       `${ENDPOINTS.list}${qs}`,
-      token,
     )
     if (!response.success || !response.data) {
       throw new Error(response.error ?? 'Failed to fetch appointments')
@@ -49,12 +47,10 @@ export const bookingService = {
 
   createAppointment: async (
     data: CreateAppointmentDto,
-    token: string,
   ): Promise<Appointment> => {
     const response = await apiService.post<Appointment>(
       ENDPOINTS.create,
       data,
-      token,
     )
     if (!response.success || !response.data) {
       throw new Error(response.error ?? 'Failed to create appointment')
@@ -64,12 +60,9 @@ export const bookingService = {
 
   cancelAppointment: async (
     id: string,
-    token: string,
   ): Promise<Appointment> => {
     const response = await apiService.patch<Appointment>(
       ENDPOINTS.cancel(id),
-      undefined,
-      token,
     )
     if (!response.success || !response.data) {
       throw new Error(response.error ?? 'Failed to cancel appointment')

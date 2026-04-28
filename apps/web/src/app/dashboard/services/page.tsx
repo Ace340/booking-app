@@ -4,17 +4,11 @@ import { useState } from 'react'
 import { useServices, useCreateService, useUpdateService, useDeleteService } from '@/features/services/hooks'
 import type { Service } from '@booking-app/types'
 
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem('auth_token')
-}
-
 export default function ServicesPage() {
-  const token = getToken()
-  const { data: services, isLoading, error } = useServices({}, token)
-  const createService = useCreateService(token)
-  const updateService = useUpdateService(token)
-  const deleteService = useDeleteService(token)
+  const { data: services, isLoading, error } = useServices({})
+  const createService = useCreateService()
+  const updateService = useUpdateService()
+  const deleteService = useDeleteService()
 
   const [showForm, setShowForm] = useState(false)
   const [editingService, setEditingService] = useState<Service | null>(null)

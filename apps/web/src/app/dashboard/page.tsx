@@ -6,18 +6,11 @@ import { useServices } from '@/features/services/hooks'
 import { useStaff } from '@/features/staff/hooks'
 import { useCustomers } from '@/features/customers/hooks'
 
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem('auth_token')
-}
-
 export default function DashboardPage() {
-  const token = getToken()
-
-  const { data: appointments } = useAppointments({}, token)
-  const { data: services } = useServices({}, token)
-  const { data: staff } = useStaff({}, token)
-  const { data: customers } = useCustomers({}, token)
+  const { data: appointments } = useAppointments({})
+  const { data: services } = useServices({})
+  const { data: staff } = useStaff({})
+  const { data: customers } = useCustomers({})
 
   const stats = [
     {

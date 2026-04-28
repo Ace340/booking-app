@@ -6,25 +6,28 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '@clerk/nextjs'
 import { bookingService } from '@/services'
 import type { CreateAppointmentDto, Appointment } from '@booking-app/types'
 import { APPOINTMENTS_KEY } from './use-appointments'
 
 /**
- * @param token - JWT access token
- *
  * @example
  * ```tsx
- * const { mutate: createAppointment, isPending } = useCreateAppointment(token)
+ * const { mutate: createAppointment, isPending } = useCreateAppointment()
  *
  * createAppointment({ staffId, serviceId, startTime })
  * ```
  */
-export function useCreateAppointment(token: string | null) {
+export function useCreateAppointment() {
   const queryClient = useQueryClient()
+  const { getToken } = useAuth()
 
   return useMutation<Appointment, Error, CreateAppointmentDto>({
-    mutationFn: (data) => bookingService.createAppointment(data, token!),
+    mutationFn: async (data) => {
+      const token = await getToken()
+      return bookingService.createAppointment(data, token!)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_KEY] })
     },

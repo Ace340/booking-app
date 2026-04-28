@@ -17,10 +17,12 @@ export interface EnvConfig {
   // Database
   DATABASE_URL: string;
 
-  // Auth
-  JWT_SECRET: string;
-  JWT_EXPIRES_IN: string;
-  BCRYPT_SALT_ROUNDS: number;
+  // Auth (Clerk)
+  CLERK_SECRET_KEY: string;
+  CLERK_PUBLISHABLE_KEY?: string;
+  CLERK_JWT_KEY?: string;
+  CLERK_AUTHORIZED_PARTIES?: string;
+  CLERK_WEBHOOK_SECRET?: string;
 
   // CORS
   CORS_ORIGINS: string;
@@ -65,19 +67,26 @@ const ENV_SCHEMA: Record<string, SchemaField> = {
     required: true,
     type: 'string',
   },
-  JWT_SECRET: {
+  CLERK_SECRET_KEY: {
     required: true,
     type: 'string',
   },
-  JWT_EXPIRES_IN: {
+  CLERK_PUBLISHABLE_KEY: {
     required: false,
     type: 'string',
-    default: '7d',
   },
-  BCRYPT_SALT_ROUNDS: {
+  CLERK_JWT_KEY: {
     required: false,
-    type: 'number',
-    default: '10',
+    type: 'string',
+  },
+  CLERK_AUTHORIZED_PARTIES: {
+    required: false,
+    type: 'string',
+    default: 'http://localhost:3000',
+  },
+  CLERK_WEBHOOK_SECRET: {
+    required: false,
+    type: 'string',
   },
   CORS_ORIGINS: {
     required: false,

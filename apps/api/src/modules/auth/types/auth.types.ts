@@ -1,33 +1,35 @@
 /**
  * Auth Types
  *
- * Type definitions for authentication and authorization.
+ * Type definitions for Clerk-based authentication and authorization.
  */
 
 import { UserRole } from '@prisma/client';
 
 /**
- * JWT Payload
+ * Clerk JWT Token Claims
  *
- * Data stored in the JWT token.
- * iat and exp are automatically added by JWT service.
+ * Claims extracted from a verified Clerk session token.
  */
-export interface JwtPayload {
-  sub: string;      // User ID
-  email: string;    // User email
-  role: UserRole;   // User role
-  companyId: string; // Company ID
-  iat?: number;     // Issued at (auto-generated)
-  exp?: number;     // Expiration time (auto-generated)
+export interface ClerkTokenClaims {
+  sub: string;        // Clerk User ID (user_...)
+  sid?: string;       // Clerk Session ID (sess_...)
+  azp?: string;       // Authorized party (origin)
+  exp?: number;       // Expiration time
+  iat?: number;       // Issued at
+  iss?: string;       // Issuer
+  nbf?: number;       // Not before
 }
 
 /**
  * Authenticated User
  *
- * User information extracted from JWT token.
+ * User information attached to the request after Clerk verification.
+ * Combines Clerk data with local DB data.
  */
 export interface AuthUser {
-  id: string;
+  id: string;         // Our internal DB user ID
+  clerkId: string;    // Clerk user ID
   email: string;
   name: string;
   role: UserRole;
@@ -35,45 +37,56 @@ export interface AuthUser {
 }
 
 /**
- * Register User Data
+ * Clerk Request Context
  *
- * Data required for user registration.
+ * Attached to request by the Clerk auth guard.
  */
-export interface RegisterUserData {
+export interface ClerkRequestContext {
+  userId: string;              // Clerk user ID
+  sessionId?: string;          // Clerk session ID
+  token: ClerkTokenClaims;    // Verified token claims
+  dbUser: AuthUser | null;    // Local DB user (null if not synced yet)
+}
+
+/**
+ * Clerk Webhook Payload
+ *
+ * Payload sent by Clerk webhooks for user events.
+ */
+export interface ClerkWebhookUser {
+  id: string;
+  email_addresses: ClerkEmailAddress[];
+  first_name?: string;
+  last_name?: string;
+  image_url?: string;
+  public_metadata?: Record<string, unknown>;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface ClerkEmailAddress {
+  id: string;
+  email_address: string;
+  verification?: {
+    status: string;
+  };
+}
+
+export interface ClerkWebhookEvent {
+  object: string;
+  type: string;
+  data: ClerkWebhookUser;
+}
+
+/**
+ * User Sync Data
+ *
+ * Data used to create/update a local user from Clerk data.
+ */
+export interface UserSyncData {
+  clerkId: string;
   email: string;
-  password: string;
   name: string;
-  companyId: string;
   role?: UserRole;
-}
-
-/**
- * Login User Data
- *
- * Data required for user login.
- */
-export interface LoginUserData {
-  email: string;
-  password: string;
-}
-
-/**
- * Auth Response
- *
- * Response data for successful authentication.
- */
-export interface AuthResponse {
-  accessToken: string;
-  user: Omit<AuthUser, 'companyId'>;
-}
-
-/**
- * Token Validation Result
- *
- * Result of token validation.
- */
-export interface TokenValidationResult {
-  valid: boolean;
-  user?: AuthUser;
-  error?: string;
+  companyId?: string;
 }

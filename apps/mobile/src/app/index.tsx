@@ -1,12 +1,12 @@
 import { Redirect } from 'expo-router';
-import { useAuthStore } from '@/store';
+import { useAuth } from '@clerk/expo';
 
 export default function Index() {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const { isSignedIn } = useAuth();
 
-  if (isAuthenticated) {
+  if (isSignedIn) {
     return <Redirect href="/(app)/home" />;
   }
 
-  return <Redirect href="/(auth)/login" />;
+  return <Redirect href="/(auth)/sign-in" />;
 }

@@ -3,6 +3,10 @@
  *
  * Aligned with the Prisma schema and NestJS backend.
  * Used across web, mobile, and API applications.
+ *
+ * Note: Authentication is handled by Clerk.
+ * Login/register DTOs are intentionally omitted —
+ * Clerk manages sign-up, sign-in, passwords, and sessions.
  */
 
 // ─── Enums ───────────────────────────────────────────────
@@ -31,44 +35,24 @@ export interface User {
   updatedAt: string
 }
 
-export interface CreateUserDto {
-  email: string
-  name: string
-  password: string
-  companyId: string
-  role?: UserRole
-}
-
 export interface UpdateUserDto {
   email?: string
   name?: string
 }
 
-// ─── Auth Types ──────────────────────────────────────────
+// ─── Auth Types (Clerk-managed) ──────────────────────────
 
-export interface AuthUser {
+/**
+ * User profile returned by our backend's /auth/me endpoint.
+ * Combines Clerk identity with local DB fields.
+ */
+export interface UserProfile {
   id: string
+  clerkId: string
   email: string
   name: string
   role: UserRole
-}
-
-export interface AuthResponse {
-  accessToken: string
-  user: AuthUser
-}
-
-export interface LoginDto {
-  email: string
-  password: string
-}
-
-export interface RegisterDto {
-  email: string
-  password: string
-  name: string
   companyId: string
-  role?: UserRole
 }
 
 // ─── Service Types ───────────────────────────────────────

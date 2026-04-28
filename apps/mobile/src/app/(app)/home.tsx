@@ -1,14 +1,15 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { useAuthStore } from '@/store';
+import { useUser } from '@clerk/expo';
 import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY } from '@/theme';
 
 export default function HomeScreen() {
-  const user = useAuthStore((state) => state.user);
+  const { user } = useUser();
+  const name = user?.fullName ?? 'Guest';
 
   return (
     <View style={styles.container}>
       <View style={styles.welcomeCard}>
-        <Text style={styles.greeting}>Hello, {user?.name ?? 'Guest'} 👋</Text>
+        <Text style={styles.greeting}>Hello, {name} 👋</Text>
         <Text style={styles.subtitle}>What would you like to book today?</Text>
       </View>
 

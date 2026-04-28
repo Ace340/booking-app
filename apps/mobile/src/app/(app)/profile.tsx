@@ -1,21 +1,25 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useAuthStore } from '@/store';
+import { useAuth, useUser, useClerk } from '@clerk/expo';
 import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY } from '@/theme';
 
 export default function ProfileScreen() {
-  const user = useAuthStore((state) => state.user);
-  const logout = useAuthStore((state) => state.logout);
+  const { isSignedIn } = useAuth();
+  const { user: clerkUser } = useUser();
+  const { signOut } = useClerk();
+
+  const displayName = clerkUser?.fullName ?? 'Guest';
+  const email = clerkUser?.primaryEmailAddress?.emailAddress ?? 'No email';
 
   return (
     <View style={styles.container}>
       <View style={styles.avatarSection}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
-            {user?.name?.charAt(0)?.toUpperCase() ?? '?'}
+            {displayName.charAt(0).toUpperCase()}
           </Text>
         </View>
-        <Text style={styles.userName}>{user?.name ?? 'Guest'}</Text>
-        <Text style={styles.userEmail}>{user?.email ?? 'No email'}</Text>
+        <Text style={styles.userName}>{displayName}</Text>
+        <Text style={styles.userEmail}>{email}</Text>
       </View>
 
       <View style={styles.menuSection}>
@@ -46,7 +50,7 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+      <TouchableOpacity style={styles.logoutButton} onPress={() => signOut()}>
         <Text style={styles.logoutText}>Sign Out</Text>
       </TouchableOpacity>
     </View>

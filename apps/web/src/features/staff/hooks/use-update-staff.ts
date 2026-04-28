@@ -6,6 +6,7 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '@clerk/nextjs'
 import { staffService } from '@/services'
 import type { UpdateStaffDto, Staff } from '@booking-app/types'
 import { STAFF_KEY } from './use-staff'
@@ -15,14 +16,15 @@ interface UpdateStaffVariables {
   data: UpdateStaffDto
 }
 
-/**
- * @param token - JWT access token
- */
-export function useUpdateStaff(token: string | null) {
+export function useUpdateStaff() {
   const queryClient = useQueryClient()
+  const { getToken } = useAuth()
 
   return useMutation<Staff, Error, UpdateStaffVariables>({
-    mutationFn: ({ id, data }) => staffService.updateStaff(id, data, token!),
+    mutationFn: async ({ id, data }) => {
+      const token = await getToken()
+      return staffService.updateStaff(id, data, token!)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [STAFF_KEY] })
     },

@@ -2,29 +2,31 @@
  * useCustomer Hook
  *
  * Fetches a single customer by id.
- * Wraps React Query's `useQuery` — components only consume this hook.
+ * Obtains a Clerk session token internally via `useAuth()`.
  */
 
 import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '@clerk/nextjs'
 import { customerService } from '@/services'
 import { CUSTOMERS_KEY } from './use-customers'
 
 /**
- * @param id    - Customer id to fetch
- * @param token - JWT access token
+ * @param id - Customer id to fetch
  *
  * @example
  * ```tsx
- * const { data: customer, isLoading, error } = useCustomer('123', token)
+ * const { data: customer, isLoading, error } = useCustomer('123')
  * ```
  */
-export function useCustomer(
-  id: string,
-  token: string | null,
-) {
+export function useCustomer(id: string) {
+  const { getToken, isSignedIn } = useAuth()
+
   return useQuery({
     queryKey: [CUSTOMERS_KEY, id],
-    queryFn: () => customerService.getCustomer(id, token!),
-    enabled: Boolean(token) && Boolean(id),
+    queryFn: async () => {
+      const token = await getToken()
+      return customerService.getCustomer(id, token!)
+    },
+    enabled: !!isSignedIn && !!id,
   })
 }

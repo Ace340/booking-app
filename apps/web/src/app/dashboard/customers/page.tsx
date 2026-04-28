@@ -3,17 +3,10 @@
 import { useState } from 'react'
 import { useCustomers } from '@/features/customers/hooks'
 
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem('auth_token')
-}
-
 export default function CustomersPage() {
-  const token = getToken()
   const [search, setSearch] = useState('')
   const { data: customers, isLoading, error } = useCustomers(
     { search: search || undefined },
-    token,
   )
 
   return (

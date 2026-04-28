@@ -12,8 +12,7 @@ export const API_CONFIG = {
   baseUrl: API_BASE_URL,
   endpoints: {
     auth: {
-      login: '/auth/login',
-      register: '/auth/register',
+      me: '/auth/me',
     },
     bookings: {
       list: '/bookings',

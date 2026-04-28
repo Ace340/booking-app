@@ -2,9 +2,12 @@
  * API Client
  *
  * Generic HTTP client for the backend API.
- * Handles auth tokens, JSON serialization, and error normalisation.
+ * Accepts a Clerk session token and attaches it to requests.
+ * Handles JSON serialization and error normalisation.
  *
  * No component should call this directly — use the service layer.
+ * Hooks obtain the token via Clerk's `useAuth().getToken()` and pass it
+ * through services to this client.
  */
 
 import { API_CONFIG } from './config'
@@ -14,7 +17,7 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 export interface RequestOptions {
   method?: HttpMethod
   body?: unknown
-  token?: string | null
+  token?: string
 }
 
 export class ApiError extends Error {
@@ -29,6 +32,7 @@ export class ApiError extends Error {
 
 /**
  * Low-level request function.
+ * Attaches the provided Clerk token to the Authorization header.
  * Throws `ApiError` on non-2xx responses so React Query can surface them.
  */
 export async function request<T>(
@@ -64,18 +68,18 @@ export async function request<T>(
 
 /** Convenience helpers — services use these instead of raw `request`. */
 export const apiClient = {
-  get: <T>(endpoint: string, token?: string | null) =>
+  get: <T>(endpoint: string, token?: string) =>
     request<T>(endpoint, { method: 'GET', token }),
 
-  post: <T>(endpoint: string, body: unknown, token?: string | null) =>
+  post: <T>(endpoint: string, body: unknown, token?: string) =>
     request<T>(endpoint, { method: 'POST', body, token }),
 
-  patch: <T>(endpoint: string, body?: unknown, token?: string | null) =>
+  patch: <T>(endpoint: string, body?: unknown, token?: string) =>
     request<T>(endpoint, { method: 'PATCH', body, token }),
 
-  put: <T>(endpoint: string, body: unknown, token?: string | null) =>
+  put: <T>(endpoint: string, body: unknown, token?: string) =>
     request<T>(endpoint, { method: 'PUT', body, token }),
 
-  delete: <T>(endpoint: string, token?: string | null) =>
+  delete: <T>(endpoint: string, token?: string) =>
     request<T>(endpoint, { method: 'DELETE', token }),
 }

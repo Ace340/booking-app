@@ -4,17 +4,11 @@ import { useState } from 'react'
 import { useStaff, useCreateStaff, useUpdateStaff, useDeleteStaff } from '@/features/staff/hooks'
 import type { Staff } from '@booking-app/types'
 
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem('auth_token')
-}
-
 export default function StaffPage() {
-  const token = getToken()
-  const { data: staff, isLoading, error } = useStaff({}, token)
-  const createStaff = useCreateStaff(token)
-  const updateStaff = useUpdateStaff(token)
-  const deleteStaff = useDeleteStaff(token)
+  const { data: staff, isLoading, error } = useStaff({})
+  const createStaff = useCreateStaff()
+  const updateStaff = useUpdateStaff()
+  const deleteStaff = useDeleteStaff()
 
   const [showForm, setShowForm] = useState(false)
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null)

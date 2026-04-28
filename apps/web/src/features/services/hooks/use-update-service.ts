@@ -6,6 +6,7 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '@clerk/nextjs'
 import { serviceService } from '@/services'
 import type { UpdateServiceDto, Service } from '@booking-app/types'
 import { SERVICES_KEY } from './use-services'
@@ -15,14 +16,15 @@ interface UpdateServiceVariables {
   data: UpdateServiceDto
 }
 
-/**
- * @param token - JWT access token
- */
-export function useUpdateService(token: string | null) {
+export function useUpdateService() {
   const queryClient = useQueryClient()
+  const { getToken } = useAuth()
 
   return useMutation<Service, Error, UpdateServiceVariables>({
-    mutationFn: ({ id, data }) => serviceService.updateService(id, data, token!),
+    mutationFn: async ({ id, data }) => {
+      const token = await getToken()
+      return serviceService.updateService(id, data, token!)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [SERVICES_KEY] })
     },

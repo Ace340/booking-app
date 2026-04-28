@@ -1,52 +1,45 @@
 /**
  * Auth Repository
  *
- * Handles database operations for user authentication.
- * Follows clean architecture: pure functions, no side effects.
+ * Handles database operations for user management.
+ * Supports both Clerk-based (clerkId) and legacy lookups.
  */
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { User, UserRole } from '@prisma/client';
 import { BaseRepositoryInterface } from '../../../common/interfaces/base-repository.interface';
-import { RegisterUserData } from '../types/auth.types';
+import { UserSyncData } from '../types/auth.types';
 
-/**
- * Auth Repository
- *
- * Provides database access methods for user authentication.
- * All methods are pure functions with explicit dependencies.
- */
 @Injectable()
 export class AuthRepository implements BaseRepositoryInterface<User> {
+  private readonly logger = new Logger(AuthRepository.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Find user by ID
-   * @param id - User ID
-   * @returns User or null if not found
+   * Find user by internal ID.
    */
   async findById(id: string): Promise<User | null> {
-    return this.prisma.user.findUnique({
-      where: { id },
-    });
+    return this.prisma.user.findUnique({ where: { id } });
   }
 
   /**
-   * Find user by email
-   * @param email - User email
-   * @returns User or null if not found
+   * Find user by email.
    */
   async findByEmail(email: string): Promise<User | null> {
-    return this.prisma.user.findUnique({
-      where: { email },
-    });
+    return this.prisma.user.findUnique({ where: { email } });
   }
 
   /**
-   * Find all users with optional filtering
-   * @param filters - Optional filter criteria
-   * @returns Array of users
+   * Find user by Clerk ID.
+   */
+  async findByClerkId(clerkId: string): Promise<User | null> {
+    return this.prisma.user.findFirst({ where: { clerkId } });
+  }
+
+  /**
+   * Find all users with optional filtering.
    */
   async findAll(filters?: Record<string, unknown>): Promise<User[]> {
     const where = this.buildWhereClause(filters);
@@ -54,59 +47,78 @@ export class AuthRepository implements BaseRepositoryInterface<User> {
   }
 
   /**
-   * Create a new user
-   * @param data - User data
-   * @returns Created user
+   * Create a new user from Clerk data.
+   * Assigns a default company if none provided.
    */
-  async create(data: RegisterUserData): Promise<User> {
+  async createFromClerk(data: UserSyncData): Promise<User> {
     return this.prisma.user.create({
       data: {
+        clerkId: data.clerkId,
         email: data.email,
-        password: data.password,
         name: data.name,
-        companyId: data.companyId,
-        role: data.role || UserRole.CLIENT,
+        role: data.role ?? UserRole.CLIENT,
+        password: '',  // No password — Clerk handles auth
+        ...(data.companyId ? { companyId: data.companyId } : { companyId: '' }),
       },
     });
   }
 
   /**
-   * Update an existing user
-   * @param id - User ID
-   * @param data - Partial user data
-   * @returns Updated user or null if not found
+   * Update user by internal ID.
    */
   async update(id: string, data: Partial<User>): Promise<User | null> {
     try {
-      return await this.prisma.user.update({
-        where: { id },
-        data,
-      });
-    } catch (error) {
+      return await this.prisma.user.update({ where: { id }, data });
+    } catch {
       return null;
     }
   }
 
   /**
-   * Delete a user
-   * @param id - User ID
-   * @returns True if deleted, false if not found
+   * Update user by Clerk ID.
+   */
+  async updateByClerkId(
+    clerkId: string,
+    data: { email?: string; name?: string; role?: UserRole },
+  ): Promise<User | null> {
+    try {
+      return await this.prisma.user.updateMany({
+        where: { clerkId },
+        data,
+      }).then(() => this.findByClerkId(clerkId));
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Delete user by internal ID.
    */
   async delete(id: string): Promise<boolean> {
     try {
-      await this.prisma.user.delete({
-        where: { id },
-      });
+      await this.prisma.user.delete({ where: { id } });
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
 
   /**
-   * Check if user exists
-   * @param id - User ID
-   * @returns True if exists, false otherwise
+   * Delete user by Clerk ID.
+   */
+  async deleteByClerkId(clerkId: string): Promise<boolean> {
+    try {
+      const user = await this.findByClerkId(clerkId);
+      if (!user) return false;
+      await this.prisma.user.delete({ where: { id: user.id } });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Check if user exists.
    */
   async exists(id: string): Promise<boolean> {
     const user = await this.findById(id);
@@ -114,9 +126,7 @@ export class AuthRepository implements BaseRepositoryInterface<User> {
   }
 
   /**
-   * Check if email exists
-   * @param email - User email
-   * @returns True if email exists, false otherwise
+   * Check if email exists.
    */
   async emailExists(email: string): Promise<boolean> {
     const user = await this.findByEmail(email);
@@ -124,9 +134,7 @@ export class AuthRepository implements BaseRepositoryInterface<User> {
   }
 
   /**
-   * Build where clause from filters
-   * @param filters - Optional filter criteria
-   * @returns Prisma where clause
+   * Build where clause from filters.
    */
   private buildWhereClause(filters?: Record<string, unknown>): Record<string, unknown> {
     if (!filters) return {};
