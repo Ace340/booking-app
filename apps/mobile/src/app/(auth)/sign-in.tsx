@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 
 export default function SignInScreen() {
-  const { signIn, isLoaded } = useSignIn();
-  const { isSignedIn } = useAuth();
+  const { signIn } = useSignIn();
+  const { isLoaded, isSignedIn } = useAuth();
   const router = useRouter();
 
   const [emailAddress, setEmailAddress] = useState('');
@@ -21,19 +21,27 @@ export default function SignInScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleSignIn = async () => {
-    if (!isLoaded) return;
+    if (!isLoaded) {
+      setError('Authentication service is loading. Please wait...');
+      return;
+    }
 
     setLoading(true);
     setError('');
 
     try {
-      const result = await signIn.create({
-        identifier: emailAddress,
+      const { error: signInError } = await signIn.password({
+        emailAddress,
         password,
       });
 
-      if (result.status === 'complete') {
-        await result.finalize({
+      if (signInError) {
+        setError(signInError.longMessage ?? signInError.message);
+        return;
+      }
+
+      if (signIn.status === 'complete') {
+        await signIn.finalize({
           navigate: ({ session, decorateUrl }) => {
             if (session?.currentTask) return;
             const url = decorateUrl('/');
@@ -44,10 +52,10 @@ export default function SignInScreen() {
             }
           },
         });
-      } else if (result.status === 'needs_second_factor') {
+      } else if (signIn.status === 'needs_second_factor') {
         setError('Two-factor authentication is required');
       } else {
-        setError(`Sign in status: ${result.status}`);
+        setError(`Sign in status: ${signIn.status}`);
       }
     } catch (err: any) {
       const message =
@@ -100,7 +108,8 @@ export default function SignInScreen() {
 
       <Pressable onPress={() => router.push('/(auth)/sign-up' as Href)}>
         <Text style={styles.link}>
-          Don&apos;t have an account? <Text style={styles.linkBold}>Sign Up</Text>
+          Don&apos;t have an account?{' '}
+          <Text style={styles.linkBold}>Sign Up</Text>
         </Text>
       </Pressable>
     </View>

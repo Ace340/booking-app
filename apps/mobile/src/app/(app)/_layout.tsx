@@ -1,7 +1,8 @@
 import { Redirect, Tabs } from 'expo-router';
 import { Text, StyleSheet } from 'react-native';
 import { useAuth } from '@clerk/expo';
-import { COLORS, SPACING, TYPOGRAPHY } from '@/theme';
+
+console.log('🚀 AppLayout rendering...');
 
 function TabIcon({ title, focused }: { title: string; focused: boolean }) {
   return (
@@ -12,22 +13,27 @@ function TabIcon({ title, focused }: { title: string; focused: boolean }) {
 }
 
 export default function AppLayout() {
+  console.log('📱 AppLayout component rendering...');
   const { isSignedIn } = useAuth();
 
+  console.log('🔐 AppLayout isSignedIn:', isSignedIn);
+
   if (!isSignedIn) {
+    console.log('🔴 Redirecting to sign-in');
     return <Redirect href="/(auth)/sign-in" />;
   }
 
+  console.log('✅ Showing tabs');
   return (
     <Tabs
       screenOptions={{
         headerShown: true,
-        headerStyle: styles.header,
-        headerTitleStyle: styles.headerTitle,
-        headerTintColor: COLORS.primary,
-        tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.gray400,
+        headerStyle: { backgroundColor: '#fff' },
+        headerTitleStyle: { fontSize: 18, fontWeight: '600', color: '#1e3a8a' },
+        headerTintColor: '#1e3a8a',
+        tabBarStyle: { backgroundColor: '#fff', borderTopColor: '#e2e8f0', borderTopWidth: 1, paddingBottom: 8, paddingTop: 8, height: 60 },
+        tabBarActiveTintColor: '#1e3a8a',
+        tabBarInactiveTintColor: '#94a3b8',
       }}
     >
       <Tabs.Screen
@@ -56,28 +62,12 @@ export default function AppLayout() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    backgroundColor: COLORS.surface,
-  },
-  headerTitle: {
-    fontSize: TYPOGRAPHY.sizes.lg,
-    fontWeight: '600',
-    color: COLORS.primary,
-  },
-  tabBar: {
-    backgroundColor: COLORS.surface,
-    borderTopColor: COLORS.gray200,
-    borderTopWidth: 1,
-    paddingBottom: SPACING.sm,
-    paddingTop: SPACING.sm,
-    height: 60,
-  },
   tabLabel: {
-    fontSize: TYPOGRAPHY.sizes.xs,
-    color: COLORS.gray400,
+    fontSize: 12,
+    color: '#94a3b8',
   },
   tabLabelActive: {
-    color: COLORS.primary,
+    color: '#1e3a8a',
     fontWeight: '600',
   },
 });

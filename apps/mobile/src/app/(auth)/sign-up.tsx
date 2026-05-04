@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 
 export default function SignUpScreen() {
-  const { signUp, isLoaded } = useSignUp();
-  const { isSignedIn } = useAuth();
+  const { signUp } = useSignUp();
+  const { isLoaded, isSignedIn } = useAuth();
   const router = useRouter();
 
   const [emailAddress, setEmailAddress] = useState('');
@@ -29,13 +29,17 @@ export default function SignUpScreen() {
     setError('');
 
     try {
-      await signUp.create({
+      const { error: signUpError } = await signUp.password({
         emailAddress,
         password,
       });
 
-      // Send email verification code
-      await signUp.prepareVerification({ strategy: 'email_code' });
+      if (signUpError) {
+        setError(signUpError.longMessage ?? signUpError.message);
+        return;
+      }
+
+      await signUp.verifications.sendEmailCode();
       setPendingVerification(true);
     } catch (err: any) {
       const message =
@@ -53,12 +57,15 @@ export default function SignUpScreen() {
     setError('');
 
     try {
-      const result = await signUp.attemptVerification({
-        strategy: 'email_code',
-        code,
-      });
+      const { error: verifyError } =
+        await signUp.verifications.verifyEmailCode({ code });
 
-      if (result.status === 'complete') {
+      if (verifyError) {
+        setError(verifyError.longMessage ?? verifyError.message);
+        return;
+      }
+
+      if (signUp.status === 'complete') {
         await signUp.finalize({
           navigate: ({ session, decorateUrl }) => {
             if (session?.currentTask) return;
@@ -71,7 +78,7 @@ export default function SignUpScreen() {
           },
         });
       } else {
-        setError(`Verification status: ${result.status}`);
+        setError(`Verification status: ${signUp.status}`);
       }
     } catch (err: any) {
       const message =
@@ -88,9 +95,7 @@ export default function SignUpScreen() {
     return (
       <View style={styles.container}>
         <Text style={styles.title}>Verify your email</Text>
-        <Text style={styles.subtitle}>
-          We sent a code to {emailAddress}
-        </Text>
+        <Text style={styles.subtitle}>We sent a code to {emailAddress}</Text>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -158,7 +163,8 @@ export default function SignUpScreen() {
 
       <Pressable onPress={() => router.push('/(auth)/sign-in' as Href)}>
         <Text style={styles.link}>
-          Already have an account? <Text style={styles.linkBold}>Sign In</Text>
+          Already have an account?{' '}
+          <Text style={styles.linkBold}>Sign In</Text>
         </Text>
       </Pressable>
     </View>
